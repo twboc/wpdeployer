@@ -1,0 +1,19 @@
+webserver:
+   container_name: $WP_name
+   image: shipbeat/woocommerce
+   links:
+    - dbserver:mysql
+   ports:
+    - $WP_port
+   volumes:
+    - $WP_volumePath
+
+dbserver:
+   container_name: $DB_name
+   image: mariadb
+   environment:
+    MYSQL_ROOT_PASSWORD: 9736718D92E552C6F5C19007727372196B21AC1E3FFB4E57A3160E68FD1851B6
+   ports:
+    - $DB_port
+   volumes:
+    - $DB_volumePath
