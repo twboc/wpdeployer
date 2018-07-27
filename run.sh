@@ -47,7 +47,7 @@ do
 
     envsubst < "$rootDir/deployer/template.yml" > "$rootDir/domains/$domain/docker-compose.yml";
 
-    sudo docker-compose -f "$rootDir/domains/$domain/docker-compose.yml" up
+    sudo docker-compose -f "$rootDir/domains/$domain/docker-compose.yml" up -d
 
     fi
 done
