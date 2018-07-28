@@ -2,3 +2,4 @@
 configs/
 domains/
 volumes/
+deployer/nginx/volume

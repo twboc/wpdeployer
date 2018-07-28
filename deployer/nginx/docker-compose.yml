@@ -5,3 +5,5 @@ proxy:
     - 80:80
    volumes:
     - /home/hubert/wpdeployer/deployer/nginx/volume/:/etc/nginx/:ro
+    - /home/hubert/wpdeployer/deployer/nginx/volume/sites-available:/etc/nginx/sites-available:ro
+    - /home/hubert/wpdeployer/deployer/nginx/volume/sites-enabled:/etc/nginx/sites-enabled:ro
