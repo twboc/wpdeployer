@@ -1,0 +1,7 @@
+proxy:
+   container_name: nginx-proxy
+   image: nginx:1.15.2
+   ports:
+    - 80:80
+   volumes:
+    - $NX_volumePath
