@@ -2,4 +2,5 @@
 configs/
 domains/
 volumes/
+deployer/nginx/docker-compose.yml
 deployer/nginx/volume
