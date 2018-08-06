@@ -55,7 +55,7 @@ install_docker(){
 
 install_docker-compose(){
   echo "Installing docker compose"
-  sudo curl -o /usr/local/bin/docker-compose -L "https://github.com/docker/compose/releases/download/3.7.0/docker-compose-$(uname -s)-$(uname -m)"
+  sudo curl -o /usr/local/bin/docker-compose -L "https://github.com/docker/compose/releases/download/1.22.0/docker-compose-$(uname -s)-$(uname -m)"
   sudo chmod +x /usr/local/bin/docker-compose
   sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
   docker-compose -v
