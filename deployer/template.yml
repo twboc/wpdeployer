@@ -1,19 +1,34 @@
-webserver:
-   container_name: $WP_name
-   image: shipbeat/woocommerce
-   links:
-    - dbserver:mysql
-   ports:
-    - $WP_port
-   volumes:
-    - $WP_volumePath
+version: '3'
 
-dbserver:
-   container_name: $DB_name
-   image: mariadb
-   environment:
-    MYSQL_ROOT_PASSWORD: 9736718D92E552C6F5C19007727372196B21AC1E3FFB4E57A3160E68FD1851B6
-   ports:
-    - $DB_port
-   volumes:
-    - $DB_volumePath
+services:
+    webserver:
+        container_name: $WP_name
+        image: shipbeat/woocommerce
+        links:
+            - dbserver:mysql
+        ports:
+            - $WP_portOut:$WP_portIn
+        expose:
+            - $WP_portOut
+        volumes:
+            - $WP_volumePath
+        environment:
+            WORDPRESS_DB_PASSWORD: 9736718D92E552C6F5C19007727372196B21AC1E3FFB4E57A3160E68FD1851B6
+            VIRTUAL_HOST: $domain
+            LETSENCRYPT_HOST: $domain
+            LETSENCRYPT_EMAIL: hubert.sobkow@gmail.com
+
+    dbserver:
+        container_name: $DB_name
+        image: mariadb
+        environment:
+            MYSQL_ROOT_PASSWORD: 9736718D92E552C6F5C19007727372196B21AC1E3FFB4E57A3160E68FD1851B6
+        ports:
+            - $DB_portOut:$DB_portIn
+        volumes:
+            - $DB_volumePath
+
+networks:
+    default:
+        external:
+            name: nginx-proxy
