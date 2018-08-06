@@ -12,6 +12,7 @@ services:
             - $WP_portOut
         volumes:
             - $WP_volumePath
+        restart: always
         environment:
             WORDPRESS_DB_PASSWORD: 9736718D92E552C6F5C19007727372196B21AC1E3FFB4E57A3160E68FD1851B6
             VIRTUAL_HOST: $domain
@@ -27,6 +28,7 @@ services:
             - $DB_portOut:$DB_portIn
         volumes:
             - $DB_volumePath
+        restart: always
 
 networks:
     default:
