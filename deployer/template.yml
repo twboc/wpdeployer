@@ -14,7 +14,7 @@ services:
             - $WP_volumePath
         restart: always
         environment:
-            WORDPRESS_DB_PASSWORD: 9736718D92E552C6F5C19007727372196B21AC1E3FFB4E57A3160E68FD1851B6
+            WORDPRESS_DB_PASSWORD: $DBPass
             VIRTUAL_HOST: $domain, www.$domain
             LETSENCRYPT_HOST: $domain, www.$domain
             LETSENCRYPT_EMAIL: hubert.sobkow@gmail.com
@@ -23,7 +23,7 @@ services:
         container_name: $domain-$DB_name
         image: mariadb
         environment:
-            MYSQL_ROOT_PASSWORD: 9736718D92E552C6F5C19007727372196B21AC1E3FFB4E57A3160E68FD1851B6
+            MYSQL_ROOT_PASSWORD: $DBPass
         ports:
             - $DB_portOut:$DB_portIn
         volumes:

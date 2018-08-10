@@ -14,12 +14,26 @@ installPackageIfNotExists "docker-compose"
 
 mkdir -p $rootDir/volumes
 
+# source the database password variable
+. $rootDir/deployer/DBPass.sh --source-only
+export DBPass;
+
+if [ -z "$DBPass" ]; then 
+    echo "DBPass is unset"; 
+    echo "Please set the DBPass variable in $rootDir/deployer/DBPass.sh file";
+    return;
+else 
+    echo "DBPass is set to '$DBPass'"; 
+fi
+
 # create separate network
 sudo docker network create nginx-proxy
 
 # run proxy handlers
 envsubst < "$rootDir/deployer/nginx/template.yml" > "$rootDir/deployer/nginx/docker-compose.yml";
 sudo docker-compose -f "$rootDir/deployer/nginx/docker-compose.yml" up -d
+
+
 
 # start websites
 for file in $rootDir/configs/*
