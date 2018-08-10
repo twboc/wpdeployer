@@ -3,7 +3,7 @@
 export WP_name="woocommerce"
 export WP_volume="$rootDir/volumes/$domain/woocommerce"
 export WP_volumePath="$WP_volume:/var/www/html"
-export WP_portOut='80'
+export WP_portOut='81'
 export WP_portIn='80'
 
 export DB_name="mariadb"
