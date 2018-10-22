@@ -15,8 +15,8 @@ services:
         restart: always
         environment:
             WORDPRESS_DB_PASSWORD: $DBPass
-            VIRTUAL_HOST: $domain, www.$domain
-            LETSENCRYPT_HOST: $domain, www.$domain
+            VIRTUAL_HOST: $HOST_subdomains
+            LETSENCRYPT_HOST: $HOST_subdomains
             LETSENCRYPT_EMAIL: hubert.sobkow@gmail.com
 
     dbserver:
