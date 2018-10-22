@@ -4,7 +4,6 @@ rootDir=$(pwd);
 . $rootDir/deployer/scripts/utils.sh
 
 resolveSubdomains(){
-    return_=0 
 
     if [ -z "$HOST_www" ]; then 
         echo "Variable $HOST_www is not set" 1>&2
@@ -42,17 +41,13 @@ resolveSubdomains(){
         echo "Please check your config if HOST_www, HOST_onlySubdomains, HOST_subdomains variables" 1>&2
         echo "HOST_onlySubdomains set to true and empty HOST_subdomains creates no variables" 1>&2
         echo "" 1>&2
-        local return_=1;
     else
         echo "Cofiguration created a list of domains" 1>&2
         HOST_domainsDeclaration=$(printf ", %s" "${HOST_domains[@]}")
         HOST_domainsDeclaration=${HOST_domainsDeclaration:1}
-        echo "HOST_domainsDeclaration: " 1>&2
-        echo $HOST_domainsDeclaration 1>&2
-        local return_=0;
     fi
 
-    echo "$return_"
+    echo "$HOST_domainsDeclaration"
 
 }
 
@@ -98,7 +93,7 @@ do
     #get domain without subdomains
     domainArr=(${domainFile//./ })
     export domain=${domainArr[-2]}.${domainArr[-1]}
-    
+
     export HOST_domains=()
     export HOST_subdomains=()
     export HOST_domainsDeclaration=""
@@ -111,13 +106,15 @@ do
     mkdir -p "$rootDir/domains/$domainFile"
     rm -rf $rootDir/domains/$domainFile/docker-compose.yml;
 
-    if [ $(resolveSubdomains) -eq 0 ]; then
-        envsubst < "$rootDir/deployer/template.yml" > "$rootDir/domains/$domainFile/docker-compose.yml";
-        sudo docker-compose -f "$rootDir/domains/$domainFile/docker-compose.yml" up -d
-    else
+    HOST_domainsDeclaration=$(resolveSubdomains);
+
+    if [ -z "$HOST_domainsDeclaration"  ]; then
         echo ""
         echo "Domains and subdomains not created for $domainFile"
         echo "Omitting container configuration for $(basename $file)"
+    else
+        envsubst < "$rootDir/deployer/template.yml" > "$rootDir/domains/$domainFile/docker-compose.yml";
+        sudo docker-compose -f "$rootDir/domains/$domainFile/docker-compose.yml" up -d
     fi
     
     fi
