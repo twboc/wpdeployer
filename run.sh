@@ -93,28 +93,30 @@ for file in $rootDir/configs/*
 do
     if [[ -f $file ]]; then
 
-    domain=$(basename $file .sh)
-
-    echo $domain
-    export domain
+    export domainFile=$(basename $file .sh)
+    
+    #get domain without subdomains
+    domainArr=(${domainFile//./ })
+    export domain=${domainArr[-2]}.${domainArr[-1]}
+    
     export HOST_domains=()
     export HOST_subdomains=()
     export HOST_domainsDeclaration=""
 
-    . $rootDir/configs/$domain.sh --source-only
+    . $rootDir/configs/$domainFile.sh --source-only
 
     mkdir -p $DB_volume
     mkdir -p $WP_volume
 
-    mkdir -p "$rootDir/domains/$domain"
-    rm -rf $rootDir/domains/$domain/docker-compose.yml;
+    mkdir -p "$rootDir/domains/$domainFile"
+    rm -rf $rootDir/domains/$domainFile/docker-compose.yml;
 
     if [ $(resolveSubdomains) -eq 0 ]; then
-        envsubst < "$rootDir/deployer/template.yml" > "$rootDir/domains/$domain/docker-compose.yml";
-        sudo docker-compose -f "$rootDir/domains/$domain/docker-compose.yml" up -d
+        envsubst < "$rootDir/deployer/template.yml" > "$rootDir/domains/$domainFile/docker-compose.yml";
+        sudo docker-compose -f "$rootDir/domains/$domainFile/docker-compose.yml" up -d
     else
         echo ""
-        echo "Domains and subdomains not created for $domain"
+        echo "Domains and subdomains not created for $domainFile"
         echo "Omitting container configuration for $(basename $file)"
     fi
     
