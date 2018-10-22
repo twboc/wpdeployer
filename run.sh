@@ -94,6 +94,8 @@ do
     if [[ -f $file ]]; then
 
     domain=$(basename $file .sh)
+
+    echo $domain
     export domain
     export HOST_domains=()
     export HOST_subdomains=()
