@@ -1,7 +1,7 @@
 #!/bin/bash
 
-export HOST_www=false                       # true|false
-export HOST_onlySubdomains=true             # true|false
+export HOST_www=true                        # true|false
+export HOST_onlySubdomains=false            # true|false
 export HOST_subdomains=()                   #('subdomain1' 'subdomain2')
 
 export WP_name="woocommerce"
