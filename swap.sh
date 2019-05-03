@@ -5,7 +5,6 @@ swapsize="";
 defaultSize=4G
 
 sudo swapoff -a
-# rm /swapfile
 
 echo -n "Enter swap size in gigabytes: "
 read userSwapsize
@@ -30,8 +29,11 @@ sudo swapon /swapfile
 
 sudo swapon --show
 
-free -h
-
 sudo cp /etc/fstab /etc/fstab.bak
 
 echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+
+echo "#####################################";
+echo "";
+
+free -h
