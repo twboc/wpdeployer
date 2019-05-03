@@ -4,6 +4,8 @@ rootDir=$(pwd);
 swapsize="";
 defaultSize=4G
 
+rm /swapfile
+
 echo -n "Enter swap size in gigabytes: "
 read userSwapsize
 
