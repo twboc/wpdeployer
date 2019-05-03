@@ -4,3 +4,4 @@ domains/
 volumes/
 deployer/nginx/docker-compose.yml
 deployer/nginx/volume
+deployer/DBPass.sh
