@@ -92,8 +92,16 @@ do
     
     #get domain without subdomains
     domainArr=(${domainFile//./ })
-    export domain=${domainArr[-2]}.${domainArr[-1]}
+    domainTemp=""
+    for i in "${domainArr[@]}"
+    do
+        domainTemp="$domainTemp.$i"
+    done
 
+    domainTemp=${domainTemp#?};
+
+    export domain=$domainTemp
+    
     export HOST_domains=()
     export HOST_subdomains=()
     export HOST_domainsDeclaration=""
