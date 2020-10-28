@@ -60,7 +60,9 @@ installPackageIfNotExists "curl"
 installPackageIfNotExists "docker"
 installPackageIfNotExists "docker-compose"
 
-./docker-compose-letsencrypt-nginx-proxy-companion/start.sh
+cd ./docker-compose-letsencrypt-nginx-proxy-companion
+./start.sh
+cd ../
 
 mkdir -p $rootDir/volumes
 
@@ -129,3 +131,7 @@ do
     
     fi
 done
+
+cd ./docker-compose-letsencrypt-nginx-proxy-companion
+./start.sh
+cd ../
