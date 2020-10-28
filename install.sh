@@ -1,5 +1,9 @@
 #!/bin/bash
 
+mkdir configs
+
+cp ./deployer/example.com.sh ./configs/example.com.sh
+
 sudo apt-get -y update
 
 sudo apt-get -y install \

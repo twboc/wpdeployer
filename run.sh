@@ -60,6 +60,8 @@ installPackageIfNotExists "curl"
 installPackageIfNotExists "docker"
 installPackageIfNotExists "docker-compose"
 
+./docker-compose-letsencrypt-nginx-proxy-companion/start.sh
+
 mkdir -p $rootDir/volumes
 
 # source the database password variable
