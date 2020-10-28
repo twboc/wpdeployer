@@ -28,4 +28,4 @@ sudo curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-
   
 sudo chmod +x /usr/local/bin/docker-compose
    
-   
+git clone https://github.com/evertramos/docker-compose-letsencrypt-nginx-proxy-companion.git
