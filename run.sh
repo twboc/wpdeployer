@@ -75,11 +75,11 @@ else
 fi
 
 # create separate network
-sudo docker network create nginx-proxy
+# sudo docker network create nginx-proxy
 
-# run proxy handlers
-envsubst < "$rootDir/deployer/nginx/template.yml" > "$rootDir/deployer/nginx/docker-compose.yml";
-sudo docker-compose -f "$rootDir/deployer/nginx/docker-compose.yml" up -d
+# # run proxy handlers
+# envsubst < "$rootDir/deployer/nginx/template.yml" > "$rootDir/deployer/nginx/docker-compose.yml";
+# sudo docker-compose -f "$rootDir/deployer/nginx/docker-compose.yml" up -d
 
 
 
