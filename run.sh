@@ -64,6 +64,10 @@ cd ./docker-compose-letsencrypt-nginx-proxy-companion
 ./start.sh
 cd ../
 
+cd ./docker-compose-letsencrypt-nginx-proxy-companion
+./start.sh
+cd ../
+
 mkdir -p $rootDir/volumes
 
 # source the database password variable
