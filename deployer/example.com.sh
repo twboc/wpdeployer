@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# export HOST=""
 export HOST_www=true                        # true|false
 export HOST_onlySubdomains=false            # true|false
 export HOST_subdomains=()                   #('subdomain1' 'subdomain2')

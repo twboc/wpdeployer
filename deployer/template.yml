@@ -2,7 +2,7 @@ version: '3'
 
 services:
     webserver:
-        container_name: $domainFile-$WP_name
+        container_name: $DOMAIN_FILE-$WP_name
         image: shipbeat/woocommerce
         links:
             - dbserver:mysql
@@ -20,7 +20,7 @@ services:
             LETSENCRYPT_EMAIL: hubert.sobkow@gmail.com
 
     dbserver:
-        container_name: $domainFile-$DB_name
+        container_name: $DOMAIN_FILE-$DB_name
         image: mariadb
         environment:
             MYSQL_ROOT_PASSWORD: $DBPass
