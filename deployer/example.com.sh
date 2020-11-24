@@ -5,8 +5,9 @@ export HOST_www=true                        # true|false
 export HOST_onlySubdomains=false            # true|false
 export HOST_subdomains=()                   #('subdomain1' 'subdomain2')
 
-export WP_name="woocommerce"
-export WP_volume="$rootDir/volumes/$domainFile/woocommerce"
+export WP_name="wordpress"
+export WP_image="wordpress"
+export WP_volume="$rootDir/volumes/$domainFile/wordpress"
 export WP_volumePath="$WP_volume:/var/www/html"
 export WP_portOut='81'
 export WP_portIn='80'

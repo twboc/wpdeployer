@@ -3,7 +3,7 @@ version: '3'
 services:
     webserver:
         container_name: $DOMAIN_FILE-$WP_name
-        image: shipbeat/woocommerce
+        image: $WP_image
         links:
             - dbserver:mysql
         ports:
