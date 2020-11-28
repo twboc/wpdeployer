@@ -1,4 +1,14 @@
-#!/bin/bash
+#!/bin/sh
+
+AUTOSTART="wpdeployer_autostart"
+AUTOSTART_PATH="/etc/init.d/$AUTOSTART.sh"
+
+rm -rf $AUTOSTART_PATH || true
+cp "./deployer/scripts/$AUTOSTART.sh" $AUTOSTART_PATH
+chmod +x $AUTOSTART_PATH
+
+touch /var/spool/cron/crontabs/root
+crontab -l | { cat; echo "@reboot $AUTOSTART_PATH"; } | crontab -
 
 mkdir configs
 
