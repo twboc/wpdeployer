@@ -1,0 +1,36 @@
+version: '3'
+
+services:
+    webserver:
+        container_name: $DOMAIN_FILE-$WP_name
+        image: $WP_image
+        links:
+            - dbserver:mysql
+        ports:
+            - $WP_portOut:$WP_portIn
+        expose:
+            - $WP_portOut
+        volumes:
+            - $WP_volumePath
+        restart: always
+        environment:
+            WORDPRESS_DB_PASSWORD: $DBPass
+            VIRTUAL_HOST: $HOST_domainsDeclaration
+            LETSENCRYPT_HOST: $HOST_domainsDeclaration
+            LETSENCRYPT_EMAIL: hubert.sobkow@gmail.com
+
+    dbserver:
+        container_name: $DOMAIN_FILE-$DB_name
+        image: mariadb
+        environment:
+            MYSQL_ROOT_PASSWORD: $DBPass
+        ports:
+            - $DB_portOut:$DB_portIn
+        volumes:
+            - $DB_volumePath
+        restart: always
+
+networks:
+    default:
+        external:
+            name: webproxy
