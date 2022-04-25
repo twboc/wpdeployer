@@ -1,2 +1,0 @@
-# wpdeployer
-Wordpress deployer
