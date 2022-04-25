@@ -12,6 +12,8 @@ util::clear_docker_containers
 util::check_dependencies
 util::create_directory $rootDir/volumes
 
+docker network create webproxy
+
 action::run_letsencrypt_containers
 action::set_database_pass
 

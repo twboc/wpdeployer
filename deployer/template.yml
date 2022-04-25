@@ -14,6 +14,9 @@ services:
             - $WP_volumePath
         restart: always
         environment:
+            WORDPRESS_DB_HOST: dbserver
+            WORDPRESS_DB_USER: root
+            WORDPRESS_DB_NAME: mysql
             WORDPRESS_DB_PASSWORD: $DBPass
             VIRTUAL_HOST: $HOST_domainsDeclaration
             LETSENCRYPT_HOST: $HOST_domainsDeclaration
@@ -33,4 +36,4 @@ services:
 networks:
     default:
         external:
-            name: webproxy
+            name: proxy
