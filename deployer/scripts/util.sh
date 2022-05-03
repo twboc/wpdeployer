@@ -68,7 +68,6 @@ action::resolve_subdomains(){
         HOST_www=true
         HOST_subdomains+=('www')
     else 
-      echo "here"
         echo "WWW subdomain is included" 1>&2
         if [ "$HOST_www" = true ] ; then
             echo "Including the www subdomain" 1>&2
@@ -122,12 +121,12 @@ task::create_containers(){
 }
 
 action::set_database_pass(){
-  if [ -z "$DBPass" ]; then 
-    echo "DBPass is unset"; 
-    echo "Please set the DBPass variable in $rootDir/deployer/DBPass.sh file";
+  if [ -z "$DB_pass" ]; then 
+    echo "DB_pass is unset"; 
+    echo "Please set the DB_pass variable in $rootDir/deployer/DB_connection.sh file";
     return;
   else 
-    echo "NO DB PASS - DBPass is set to default '$DBPass'"; 
+    echo "NO DB PASS - DB_pass is set to default '$DB_pass'"; 
   fi
 
   export DBPass

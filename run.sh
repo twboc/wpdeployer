@@ -5,14 +5,14 @@ rootDir=$(pwd);
 . $rootDir/deployer/scripts/util.sh
 
 # source the database password variable
-. $rootDir/deployer/DBPass.sh --source-only
+. $rootDir/deployer/DB_connection.sh --source-only
 
 util::prevent_subshell
 util::clear_docker_containers
 util::check_dependencies
 util::create_directory $rootDir/volumes
 
-docker network create proxy
+docker network inspect proxy >/dev/null 2>&1 || docker network create proxy
 
 action::run_letsencrypt_containers
 action::set_database_pass
@@ -22,6 +22,7 @@ for file in $rootDir/configs/*
 do
     if [[ -f $file ]]; then
     
+	. $rootDir/deployer/DB_connection.sh --source-only
         util::clear_domain_file_vars
         export DOMAIN_FILE=$(basename $file .sh)
         . $rootDir/configs/$DOMAIN_FILE.sh --source-only

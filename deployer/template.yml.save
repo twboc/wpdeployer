@@ -2,7 +2,7 @@ version: '3'
 
 services:
     webserver:
-        container_name: $DOMAIN_FILE-$WP_container_name
+        container_name: $DOMAIN_FILE-$WP_name
         image: $WP_image
         links:
             - dbserver:mysql
@@ -14,16 +14,16 @@ services:
             - $WP_volumePath
         restart: always
         environment:
-            WORDPRESS_DB_HOST: $DB_host
-            WORDPRESS_DB_USER: $DB_user
-            WORDPRESS_DB_NAME: $DB_name
+            WORDPRESS_DB_HOST: dbserver
+            WORDPRESS_DB_USER: root
+            WORDPRESS_DB_NAME: $
             WORDPRESS_DB_PASSWORD: $DB_pass
             VIRTUAL_HOST: $HOST_domainsDeclaration
             LETSENCRYPT_HOST: $HOST_domainsDeclaration
             LETSENCRYPT_EMAIL: hubert.sobkow@gmail.com
 
     dbserver:
-        container_name: $DOMAIN_FILE-$DB_container_name
+        container_name: $DOMAIN_FILE-$DB_name
         image: mariadb
         environment:
             MYSQL_ROOT_PASSWORD: $DB_pass
