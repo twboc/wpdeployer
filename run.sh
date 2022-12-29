@@ -22,7 +22,7 @@ for file in $rootDir/configs/*
 do
     if [[ -f $file ]]; then
     
-	. $rootDir/deployer/DB_connection.sh --source-only
+	    . $rootDir/deployer/DB_connection.sh --source-only
         util::clear_domain_file_vars
         export DOMAIN_FILE=$(basename $file .sh)
         . $rootDir/configs/$DOMAIN_FILE.sh --source-only
