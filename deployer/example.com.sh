@@ -18,4 +18,7 @@ export DB_volumePath="$DB_volume:/var/lib/mysql"
 export DB_portOut='3301'
 export DB_portIn='3306'
 
+export WP_debug=null
+
 # export DB_pass=""
+
