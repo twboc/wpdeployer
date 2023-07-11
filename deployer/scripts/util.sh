@@ -44,11 +44,6 @@ util::install_docker(){
   sudo chmod +x /usr/local/bin/docker-compose
 }
 
-util::install_letsencrypt_nginx_proxy_companion(){
-  git clone https://github.com/evertramos/docker-compose-letsencrypt-nginx-proxy-companion.git || true
-  cp -aa $rootDir/deployer/compose_scripts/. $rootDir/docker-compose-letsencrypt-nginx-proxy-companion/
-}
-
 util::create_configs_directory(){
   mkdir $rootDir/configs
 }
@@ -85,10 +80,11 @@ util::clear_domain_file_vars(){
   export HOST_domainsDeclaration=""
 }
 
-action::run_letsencrypt_containers(){
-  cd ./docker-compose-letsencrypt-nginx-proxy-companion
-  ./start.sh
-  cd ../
+action::run_base(){
+  echo "Running - nginx and acme companion"
+  cd ./deployer/base
+  docker compose up -d
+  cd ../../
 }
 
 action::check_host_variable(){
@@ -230,5 +226,3 @@ install_docker-compose(){
   sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
   docker-compose -v
 }
-
-

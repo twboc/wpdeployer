@@ -12,9 +12,7 @@ util::clear_docker_containers
 util::check_dependencies
 util::create_directory $rootDir/volumes
 
-docker network inspect proxy >/dev/null 2>&1 || docker network create proxy
-
-action::run_letsencrypt_containers
+action::run_base
 action::set_database_pass
 
 # start websites
@@ -37,5 +35,3 @@ do
     
     fi
 done
-
-action::run_letsencrypt_containers

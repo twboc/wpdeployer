@@ -1,6 +1,19 @@
 version: '3'
 
 services:
+    dbserver:
+        container_name: $DOMAIN_FILE-$DB_container_name
+        image: mariadb
+        environment:
+            MYSQL_ROOT_PASSWORD: $DB_pass
+        ports:
+            - $DB_portOut:$DB_portIn
+        volumes:
+            - $DB_volumePath
+        restart: always
+        networks:
+            - proxy
+
     webserver:
         container_name: $DOMAIN_FILE-$WP_container_name
         image: $WP_image
@@ -21,19 +34,9 @@ services:
             VIRTUAL_HOST: $HOST_domainsDeclaration
             LETSENCRYPT_HOST: $HOST_domainsDeclaration
             LETSENCRYPT_EMAIL: hubert.sobkow@gmail.com
-
-    dbserver:
-        container_name: $DOMAIN_FILE-$DB_container_name
-        image: mariadb
-        environment:
-            MYSQL_ROOT_PASSWORD: $DB_pass
-        ports:
-            - $DB_portOut:$DB_portIn
-        volumes:
-            - $DB_volumePath
-        restart: always
+        networks:
+            - proxy
 
 networks:
-    default:
-        external:
-            name: proxy
+    proxy:
+        external: true
