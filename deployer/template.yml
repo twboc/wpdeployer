@@ -3,7 +3,7 @@ version: '3'
 services:
     $DOMAIN_FILE-dbserver:
         container_name: $DOMAIN_FILE-$DB_container_name
-        image: mariadb
+        image: mariadb:10.6
         environment:
             MYSQL_ROOT_PASSWORD: $DB_pass
         ports:
