@@ -83,7 +83,7 @@ util::clear_domain_file_vars(){
 action::run_base(){
   echo "Running - nginx and acme companion"
   cd ./deployer/base
-  docker compose up -d
+  docker-compose up -d
   cd ../../
 }
 
