@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# export CONF_GROUP="default"
+
 # export HOST=""
 export HOST_www=true                        # true|false
 export HOST_onlySubdomains=false            # true|false

@@ -57,6 +57,12 @@ util::clear_docker_containers(){
   sudo docker rm $(sudo docker ps -a -q)
 }
 
+util::clear_docker_containers_containing(){
+  echo "Clearing containing: $1"
+  sudo docker stop $(sudo docker ps | grep $1 | awk '{ print $1 }')
+  sudo docker rm $(sudo docker ps | grep $1 | awk '{ print $1 }')
+}
+
 util::check_dependencies(){
   installPackageIfNotExists "curl"
   installPackageIfNotExists "docker"
@@ -80,6 +86,36 @@ util::clear_domain_file_vars(){
   export HOST_domainsDeclaration=""
 }
 
+util::build_options() {
+    files=("$@")
+    groups=($RESTART_ALL)
+    configs=()
+    
+    for file in "${files[@]}";
+    do
+        FILE=$(basename $file .sh)
+        configs=(${configs[@]} "CONFIG:$FILE")
+        if [[ $FILE == *"_"* ]]; then
+            FILE_ARR=(${FILE//_/ })
+            groups=(${groups[@]} "GROUP:$FILE_ARR")
+        fi
+    done
+
+    local all=( "${groups[@]}" "${configs[@]}" )
+    echo ${all[@]}
+}
+
+util::select_option(){
+    local options=("$@")
+    selected_option=""
+    select option in "${options[@]}";
+    do
+        selected_option=$option
+        break;
+    done
+    echo $selected_option
+}
+
 action::run_base(){
   echo "Running - nginx and acme companion"
   cd ./deployer/base
@@ -101,6 +137,23 @@ action::check_host_variable(){
   fi
 }
 
+action::execute_option(){
+    echo "Executing Option: $option"
+    if [[ $1 == $RESTART_ALL ]]; then
+        util::clear_docker_containers
+        action::run_base
+    else
+
+        if [[ $option == "GROUP:"* ]]; then
+            util::clear_docker_containers_containing ${$1#"GROUP:"}"_"
+        fi
+
+        if [[ $option == "CONFIG:"* ]]; then
+            util::clear_docker_containers_containing ${$1#"CONFIG:"}"-"
+        fi
+
+    fi
+}
 
 action::resolve_subdomains(){
 
@@ -173,6 +226,33 @@ action::set_database_pass(){
   fi
 
   export DBPass
+
+}
+
+action::process_config(){
+    # $1 => $file path
+    . $rootDir/deployer/DB_connection.sh --source-only
+    util::clear_domain_file_vars
+    export DOMAIN_FILE=$(basename $1 .sh)
+
+    if [[ $DOMAIN_FILE == *"_"* ]]; then
+        DOMAIN_FILE_ARR=(${DOMAIN_FILE//_/ })
+        export CONF_GROUP=${DOMAIN_FILE_ARR[0]}
+        export DOMAIN_NAME=${DOMAIN_FILE_ARR[1]}
+    else
+        export CONF_GROUP="default"
+        export DOMAIN_NAME=$DOMAIN_FILE
+    fi
+
+    . $rootDir/configs/$DOMAIN_FILE.sh --source-only
+    action::check_host_variable
+    export domain=$HOST
+    util::create_directory $DB_volume
+    util::create_directory $WP_volume
+    util::create_directory "$rootDir/domains/$DOMAIN_FILE"
+    util::delete $rootDir/domains/$DOMAIN_FILE/docker-compose.yml
+    action::resolve_subdomains HOST_domainsDeclaration
+    task::create_containers
 
 }
 

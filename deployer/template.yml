@@ -11,6 +11,8 @@ services:
         volumes:
             - $DB_volumePath
         restart: always
+        labels:
+            - "CONF_GROUP=$CONF_GROUP"
         networks:
             - proxy
 
@@ -26,6 +28,8 @@ services:
         volumes:
             - $WP_volumePath
         restart: always
+        labels:
+            - "CONF_GROUP=$CONF_GROUP"
         environment:
             WORDPRESS_DEBUG: $WP_debug
             WORDPRESS_DB_HOST: $DOMAIN_FILE-$DB_host

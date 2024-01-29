@@ -7,31 +7,53 @@ rootDir=$(pwd);
 # source the database password variable
 . $rootDir/deployer/DB_connection.sh --source-only
 
+CONFIGS_PATH=$rootDir/configs/
+RESTART_ALL="RESTART_ALL"
+
 util::prevent_subshell
-util::clear_docker_containers
 util::check_dependencies
 util::create_directory $rootDir/volumes
 
-action::run_base
+files=($CONFIGS_PATH*)
+options=($(util::build_options "${files[@]}"))
+
+echo "Choose Option - All, group, domain."
+
+option=$(util::select_option "${options[@]}" )
+
+action::execute_option $option
+
 action::set_database_pass
 
-# start websites
-for file in $rootDir/configs/*
-do
-    if [[ -f $file ]]; then
-    
-	    . $rootDir/deployer/DB_connection.sh --source-only
-        util::clear_domain_file_vars
-        export DOMAIN_FILE=$(basename $file .sh)
-        . $rootDir/configs/$DOMAIN_FILE.sh --source-only
-        action::check_host_variable
-        export domain=$HOST
-        util::create_directory $DB_volume
-        util::create_directory $WP_volume
-        util::create_directory "$rootDir/domains/$DOMAIN_FILE"
-        util::delete $rootDir/domains/$DOMAIN_FILE/docker-compose.yml
-        action::resolve_subdomains HOST_domainsDeclaration
-        task::create_containers
-    
-    fi
-done
+
+action::iterate_configs(){
+    echo "Iterating configs in: $1"
+    # start websites example $1 => $rootDir/configs/*
+    for file in "$1"*
+    do
+        if [[ -f $file ]]; then
+
+
+            if [[ $option == $RESTART_ALL ]]; then
+                action::process_config $file
+            else
+
+                FILE=$(basename $file .sh)
+
+                # if [[ $FILE == *$option"_"* ]]; then
+                #     echo "Restart selected config: $FILE"
+                #     action::process_config $file
+                # fi
+
+            fi
+        
+        fi
+    done
+
+}
+
+
+action::iterate_configs $CONFIGS_PATH
+
+docker ps
+
