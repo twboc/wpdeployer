@@ -27,23 +27,35 @@ action::set_database_pass
 
 
 action::iterate_configs(){
-    echo "Iterating configs in: $1"
+    echo "Iterating configs in: $1 with option: $2"
     # start websites example $1 => $rootDir/configs/*
     for file in "$1"*
     do
         if [[ -f $file ]]; then
 
 
-            if [[ $option == $RESTART_ALL ]]; then
+            if [[ $2 == $RESTART_ALL ]]; then
                 action::process_config $file
             else
 
                 FILE=$(basename $file .sh)
+                echo "Option: $2 $FILE"
 
-                # if [[ $FILE == *$option"_"* ]]; then
-                #     echo "Restart selected config: $FILE"
-                #     action::process_config $file
-                # fi
+                if [[ $2 == "GROUP:"* ]]; then
+                    group=${2#"GROUP:"}
+                    if [[ $FILE == $group"_"* ]]; then
+                        action::process_config $file
+                    fi
+                fi
+
+                if [[ $2 == "CONFIG:"* ]]; then
+                    config=${2#"CONFIG:"}
+                    if [[ $FILE == $config* ]]; then
+                        action::process_config $file
+                    fi
+                fi
+
+
 
             fi
         
@@ -53,7 +65,7 @@ action::iterate_configs(){
 }
 
 
-action::iterate_configs $CONFIGS_PATH
+action::iterate_configs $CONFIGS_PATH $option
 
 docker ps
 
