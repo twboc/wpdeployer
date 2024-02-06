@@ -3,7 +3,7 @@ version: '3'
 services:
     $DOMAIN_FILE-dbserver:
         container_name: $DOMAIN_FILE-$DB_container_name
-        image: mariadb:10.6
+        image: $DB_image
         environment:
             MYSQL_ROOT_PASSWORD: $DB_pass
         ports:
@@ -32,7 +32,7 @@ services:
             - "CONF_GROUP=$CONF_GROUP"
         environment:
             WORDPRESS_DEBUG: $WP_debug
-            WORDPRESS_DB_HOST: $DOMAIN_FILE-$DB_host
+            WORDPRESS_DB_HOST: $DOMAIN_FILE-dbserver
             WORDPRESS_DB_USER: $DB_user
             WORDPRESS_DB_NAME: $DB_name
             WORDPRESS_DB_PASSWORD: $DB_pass

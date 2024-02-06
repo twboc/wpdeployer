@@ -58,9 +58,8 @@ util::clear_docker_containers(){
 }
 
 util::clear_docker_containers_containing(){
-  echo "Clearing containing: $1"
-  sudo docker stop $(sudo docker ps | grep $1 | awk '{ print $1 }')
-  sudo docker rm $(sudo docker ps | grep $1 | awk '{ print $1 }')
+  echo "Docker clearing containers containing: $1"
+  sudo docker ps | grep $1 | awk '{ print $1 }' | docker stop $(</dev/stdin)
 }
 
 util::check_dependencies(){
@@ -88,7 +87,8 @@ util::clear_domain_file_vars(){
 
 util::build_options() {
     files=("$@")
-    groups=($RESTART_ALL)
+    base=($RESTART_ALL $CANCEL)
+    groups=()
     configs=()
     
     for file in "${files[@]}";
@@ -101,7 +101,9 @@ util::build_options() {
         fi
     done
 
-    local all=( "${groups[@]}" "${configs[@]}" )
+    unique_groups=($(printf "%s\n" "${groups[@]}" | sort -u))
+
+    local all=( "${base[@]}" "${unique_groups[@]}" "${configs[@]}" )
     echo ${all[@]}
 }
 
@@ -139,17 +141,18 @@ action::check_host_variable(){
 
 action::execute_option(){
     echo "Executing Option: $option"
+
     if [[ $1 == $RESTART_ALL ]]; then
         util::clear_docker_containers
         action::run_base
     else
 
         if [[ $option == "GROUP:"* ]]; then
-            util::clear_docker_containers_containing ${$1#"GROUP:"}"_"
+          util::clear_docker_containers_containing ${option/"GROUP:"/}"_"
         fi
 
         if [[ $option == "CONFIG:"* ]]; then
-            util::clear_docker_containers_containing ${$1#"CONFIG:"}"-"
+          util::clear_docker_containers_containing ${option/"CONFIG:"/}
         fi
 
     fi

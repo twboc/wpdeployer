@@ -9,6 +9,7 @@ rootDir=$(pwd);
 
 CONFIGS_PATH=$rootDir/configs/
 RESTART_ALL="RESTART_ALL"
+CANCEL="CANCEL"
 
 util::prevent_subshell
 util::check_dependencies
@@ -20,6 +21,10 @@ options=($(util::build_options "${files[@]}"))
 echo "Choose Option - All, group, domain."
 
 option=$(util::select_option "${options[@]}" )
+
+if [[ $option == $CANCEL ]]; then
+    return 0
+fi
 
 action::execute_option $option
 
@@ -33,18 +38,21 @@ action::iterate_configs(){
     do
         if [[ -f $file ]]; then
 
+            . $rootDir/deployer/DB_connection.sh --source-only
 
             if [[ $2 == $RESTART_ALL ]]; then
+                echo "Restart all: $file"
                 action::process_config $file
+
             else
 
                 FILE=$(basename $file .sh)
-                echo "Option: $2 $FILE"
 
                 if [[ $2 == "GROUP:"* ]]; then
                     group=${2#"GROUP:"}
                     if [[ $FILE == $group"_"* ]]; then
                         action::process_config $file
+                        echo "Option: $2 $FILE"
                     fi
                 fi
 
@@ -52,6 +60,7 @@ action::iterate_configs(){
                     config=${2#"CONFIG:"}
                     if [[ $FILE == $config* ]]; then
                         action::process_config $file
+                        echo "Option: $2 $FILE"
                     fi
                 fi
 
@@ -64,8 +73,4 @@ action::iterate_configs(){
 
 }
 
-
 action::iterate_configs $CONFIGS_PATH $option
-
-docker ps
-
