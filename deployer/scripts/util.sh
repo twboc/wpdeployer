@@ -69,17 +69,29 @@ util::check_dependencies(){
 }
 
 util::create_directory(){
+  if [ -z "$1" ]; then
+    echo "!!! create_directory called with an empty path - refusing"
+    return 1
+  fi
   echo "Creating directory: $1"
-  mkdir -p $1
+  mkdir -p "$1"
 }
 
 util::delete(){
+  if [ -z "$1" ]; then
+    echo "!!! delete called with an empty path - refusing"
+    return 1
+  fi
   echo "Deleting: $1"
-  rm -rf $1
+  rm -rf "$1"
 }
 
 util::clear_domain_file_vars(){
-  export HOST_www
+  unset HOST HOST_www HOST_onlySubdomains
+  unset WP_volume WP_volumePath DB_volume DB_volumePath
+  unset WP_container_name WP_image WP_portOut WP_portIn WP_debug
+  unset DB_container_name DB_image DB_portOut DB_portIn
+  unset DB_pass DB_name DB_user DB_host
   export HOST_domains=()
   export HOST_subdomains=()
   export HOST_domainsDeclaration=""
@@ -126,14 +138,14 @@ action::run_base(){
 }
 
 action::check_host_variable(){
-  if [ -z ${HOST+x} ];
+  if [ -z "$HOST" ];
     then
       echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
       echo "!!!";
       echo "!!! $DOMAIN_FILE NO HOST VARIABLE IN CONFIG";
       echo "!!!";
       echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
-      kill -INT $$
+      return 1
     else
       echo "HOST is set to '$HOST'";
   fi
@@ -199,14 +211,22 @@ action::resolve_subdomains(){
         echo "" 1>&2
     else
         echo "Cofiguration created a list of domains" 1>&2
-        HOST_domainsDeclaration=$(printf ", %s" "${HOST_domains[@]}")
+        HOST_domainsDeclaration=$(printf ",%s" "${HOST_domains[@]}")
         HOST_domainsDeclaration=${HOST_domainsDeclaration:1}
     fi
 
-    eval "$1=${HOST_domainsDeclaration}"
+    export HOST_domainsDeclaration
+    printf -v "$1" '%s' "$HOST_domainsDeclaration"
 
 }
 
+
+action::resolve_volume_paths(){
+  export WP_volume="$rootDir/volumes/$DOMAIN_FILE/wordpress"
+  export DB_volume="$rootDir/volumes/$DOMAIN_FILE/mariadb"
+  export WP_volumePath="$WP_volume:/var/www/html"
+  export DB_volumePath="$DB_volume:/var/lib/mysql"
+}
 
 task::create_containers(){
   if [ -z "$HOST_domainsDeclaration"  ]; then
@@ -234,9 +254,20 @@ action::set_database_pass(){
 
 action::process_config(){
     # $1 => $file path
-    . $rootDir/deployer/DB_connection.sh --source-only
     util::clear_domain_file_vars
-    export DOMAIN_FILE=$(basename $1 .sh)
+    . $rootDir/deployer/DB_connection.sh --source-only
+
+    export DOMAIN_FILE=$(basename "$1" .sh)
+
+    if [ -z "$DOMAIN_FILE" ]; then
+        echo "!!! Could not resolve a config name from '$1' - skipping"
+        return 1
+    fi
+
+    if [ ! -f "$rootDir/configs/$DOMAIN_FILE.sh" ]; then
+        echo "!!! Config file not found: $rootDir/configs/$DOMAIN_FILE.sh - skipping"
+        return 1
+    fi
 
     if [[ $DOMAIN_FILE == *"_"* ]]; then
         DOMAIN_FILE_ARR=(${DOMAIN_FILE//_/ })
@@ -247,13 +278,20 @@ action::process_config(){
         export DOMAIN_NAME=$DOMAIN_FILE
     fi
 
-    . $rootDir/configs/$DOMAIN_FILE.sh --source-only
-    action::check_host_variable
+    . "$rootDir/configs/$DOMAIN_FILE.sh" --source-only
+
+    if ! action::check_host_variable; then
+        return 1
+    fi
+
     export domain=$HOST
-    util::create_directory $DB_volume
-    util::create_directory $WP_volume
+
+    action::resolve_volume_paths
+
+    util::create_directory "$DB_volume"
+    util::create_directory "$WP_volume"
     util::create_directory "$rootDir/domains/$DOMAIN_FILE"
-    util::delete $rootDir/domains/$DOMAIN_FILE/docker-compose.yml
+    util::delete "$rootDir/domains/$DOMAIN_FILE/docker-compose.yml"
     action::resolve_subdomains HOST_domainsDeclaration
     task::create_containers
 
