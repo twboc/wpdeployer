@@ -4,13 +4,13 @@ services:
     $DOMAIN_FILE-dbserver:
         container_name: $DOMAIN_FILE-$DB_container_name
         image: $DB_image
-        command: $DB_command
         environment:
             MYSQL_ROOT_PASSWORD: $DB_pass
         ports:
             - $DB_portOut:$DB_portIn
         volumes:
             - $DB_volumePath
+            - $DB_confPath
         restart: always
         logging:
             driver: "json-file"
@@ -49,7 +49,7 @@ services:
             - "wpdeployer.service=wordpress"
             - "wpdeployer.logs=$LOGS_enabled"
         environment:
-            WORDPRESS_DEBUG: $WP_debug
+            WORDPRESS_DEBUG: "$WP_debug"
             WORDPRESS_CONFIG_EXTRA: "$WP_configExtra"
             WORDPRESS_DB_HOST: $DOMAIN_FILE-dbserver
             WORDPRESS_DB_USER: $DB_user

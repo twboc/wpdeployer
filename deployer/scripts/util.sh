@@ -65,7 +65,21 @@ util::clear_docker_containers_containing(){
 util::check_dependencies(){
   installPackageIfNotExists "curl"
   installPackageIfNotExists "docker"
-  installPackageIfNotExists "docker-compose"
+  util::resolve_compose
+}
+
+util::resolve_compose(){
+  if docker compose version >/dev/null 2>&1; then
+    export COMPOSE_CMD="docker compose"
+  elif command -v docker-compose >/dev/null 2>&1; then
+    export COMPOSE_CMD="docker-compose"
+    echo "!!! Falling back to docker-compose v1, which crashes with KeyError: 'ContainerConfig'"
+    echo "!!! when recreating containers on current Docker Engine. Install the compose v2 plugin."
+  else
+    echo "!!! Neither 'docker compose' nor 'docker-compose' is available"
+    return 1
+  fi
+  echo "Compose command: $COMPOSE_CMD"
 }
 
 util::create_directory(){
@@ -90,7 +104,8 @@ util::clear_domain_file_vars(){
   unset HOST HOST_www HOST_onlySubdomains
   unset WP_volume WP_volumePath DB_volume DB_volumePath
   unset LOGS_enabled LOGS_retentionDays LOGS_maxSizeMB LOGS_slowQueryTime
-  unset LOGS_dir WP_debugLog WP_configExtra DB_command WP_apacheConfPath
+  unset LOGS_dir WP_debugLog WP_configExtra WP_apacheConfPath
+  unset DB_confFile DB_confPath
   unset WP_container_name WP_image WP_portOut WP_portIn WP_debug
   unset DB_container_name DB_image DB_portOut DB_portIn
   unset DB_pass DB_name DB_user DB_host
@@ -135,14 +150,14 @@ util::select_option(){
 action::run_base(){
   echo "Running - nginx and acme companion"
   cd "$rootDir/deployer/base"
-  docker-compose up -d
+  $COMPOSE_CMD up -d
   cd "$rootDir"
 }
 
 action::run_logger(){
   echo "Running - log collector"
   cd "$rootDir/deployer/logger"
-  WPDEPLOYER_VOLUMES="$rootDir/volumes" docker-compose up -d
+  WPDEPLOYER_VOLUMES="$rootDir/volumes" $COMPOSE_CMD up -d
   cd "$rootDir"
 }
 
@@ -248,17 +263,33 @@ action::resolve_log_settings(){
   [ -n "${WP_debugLog:-}" ] || WP_debugLog=false
   export LOGS_enabled LOGS_retentionDays LOGS_maxSizeMB LOGS_slowQueryTime WP_debugLog
 
-  if [ "$LOGS_enabled" = true ] && [ "$LOGS_slowQueryTime" != 0 ]; then
-    export DB_command="mysqld --slow-query-log --slow-query-log-file=/dev/stderr --long-query-time=$LOGS_slowQueryTime"
-  else
-    export DB_command="mysqld"
-  fi
+  export DB_confFile="$rootDir/domains/$DOMAIN_FILE/mariadb.cnf"
+  export DB_confPath="$DB_confFile:/etc/mysql/conf.d/zz-wpdeployer.cnf:ro"
 
   if [ "$WP_debugLog" = true ]; then
-    export WP_configExtra="define('WP_DEBUG', true); define('WP_DEBUG_LOG', true); define('WP_DEBUG_DISPLAY', false); @ini_set('display_errors', 0);"
+    WP_debug=1
+    export WP_configExtra="define('WP_DEBUG_LOG', true); define('WP_DEBUG_DISPLAY', false); @ini_set('display_errors', 0);"
   else
     export WP_configExtra=""
   fi
+
+  case "$(printf '%s' "${WP_debug:-}" | tr '[:upper:]' '[:lower:]')" in
+    ""|null|false|0|no|off) WP_debug="" ;;
+    *) WP_debug=1 ;;
+  esac
+  export WP_debug
+}
+
+action::write_db_conf(){
+  [ -n "${DB_confFile:-}" ] || return 0
+  {
+    echo "[mysqld]"
+    if [ "$LOGS_enabled" = true ] && [ "$LOGS_slowQueryTime" != 0 ]; then
+      echo "slow_query_log = 1"
+      echo "slow_query_log_file = /dev/stderr"
+      echo "long_query_time = $LOGS_slowQueryTime"
+    fi
+  } > "$DB_confFile"
 }
 
 action::write_log_retention(){
@@ -273,7 +304,7 @@ task::create_containers(){
       echo "Omitting container configuration for $(basename $file)"
   else
       envsubst < "$rootDir/deployer/template.yml" > "$rootDir/domains/$DOMAIN_FILE/docker-compose.yml";
-      sudo docker-compose -f "$rootDir/domains/$DOMAIN_FILE/docker-compose.yml" up -d
+      sudo $COMPOSE_CMD -f "$rootDir/domains/$DOMAIN_FILE/docker-compose.yml" up -d
   fi
 }
 
@@ -333,6 +364,7 @@ action::process_config(){
     action::write_log_retention
     util::create_directory "$rootDir/domains/$DOMAIN_FILE"
     util::delete "$rootDir/domains/$DOMAIN_FILE/docker-compose.yml"
+    action::write_db_conf
     action::resolve_subdomains HOST_domainsDeclaration
     task::create_containers
 
