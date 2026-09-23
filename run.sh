@@ -28,6 +28,8 @@ fi
 
 action::execute_option $option
 
+action::run_logger
+
 action::set_database_pass
 
 

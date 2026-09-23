@@ -23,3 +23,9 @@ export DB_portOut='3301'
 export DB_portIn='3306'
 # export DB_pass=""
 # export DB_name=""
+
+export LOGS_enabled=false                   # true|false
+export LOGS_retentionDays=7
+export LOGS_maxSizeMB=500
+export LOGS_slowQueryTime=0                 # seconds, 0 disables the slow query log
+export WP_debugLog=false                    # true|false

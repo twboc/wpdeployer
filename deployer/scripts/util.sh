@@ -89,6 +89,8 @@ util::delete(){
 util::clear_domain_file_vars(){
   unset HOST HOST_www HOST_onlySubdomains
   unset WP_volume WP_volumePath DB_volume DB_volumePath
+  unset LOGS_enabled LOGS_retentionDays LOGS_maxSizeMB LOGS_slowQueryTime
+  unset LOGS_dir WP_debugLog WP_configExtra DB_command WP_apacheConfPath
   unset WP_container_name WP_image WP_portOut WP_portIn WP_debug
   unset DB_container_name DB_image DB_portOut DB_portIn
   unset DB_pass DB_name DB_user DB_host
@@ -132,9 +134,16 @@ util::select_option(){
 
 action::run_base(){
   echo "Running - nginx and acme companion"
-  cd ./deployer/base
+  cd "$rootDir/deployer/base"
   docker-compose up -d
-  cd ../../
+  cd "$rootDir"
+}
+
+action::run_logger(){
+  echo "Running - log collector"
+  cd "$rootDir/deployer/logger"
+  WPDEPLOYER_VOLUMES="$rootDir/volumes" docker-compose up -d
+  cd "$rootDir"
 }
 
 action::check_host_variable(){
@@ -228,6 +237,35 @@ action::resolve_volume_paths(){
   export DB_volumePath="$DB_volume:/var/lib/mysql"
 }
 
+action::resolve_log_settings(){
+  export LOGS_dir="$rootDir/volumes/$DOMAIN_FILE/logs"
+  export WP_apacheConfPath="$rootDir/deployer/wordpress/deny-logs.conf:/etc/apache2/conf-enabled/zz-wpdeployer-deny-logs.conf:ro"
+
+  [ -n "${LOGS_enabled:-}" ] || LOGS_enabled=false
+  [ -n "${LOGS_retentionDays:-}" ] || LOGS_retentionDays=7
+  [ -n "${LOGS_maxSizeMB:-}" ] || LOGS_maxSizeMB=500
+  [ -n "${LOGS_slowQueryTime:-}" ] || LOGS_slowQueryTime=0
+  [ -n "${WP_debugLog:-}" ] || WP_debugLog=false
+  export LOGS_enabled LOGS_retentionDays LOGS_maxSizeMB LOGS_slowQueryTime WP_debugLog
+
+  if [ "$LOGS_enabled" = true ] && [ "$LOGS_slowQueryTime" != 0 ]; then
+    export DB_command="mysqld --slow-query-log --slow-query-log-file=/dev/stderr --long-query-time=$LOGS_slowQueryTime"
+  else
+    export DB_command="mysqld"
+  fi
+
+  if [ "$WP_debugLog" = true ]; then
+    export WP_configExtra="define('WP_DEBUG', true); define('WP_DEBUG_LOG', true); define('WP_DEBUG_DISPLAY', false); @ini_set('display_errors', 0);"
+  else
+    export WP_configExtra=""
+  fi
+}
+
+action::write_log_retention(){
+  [ -d "$LOGS_dir" ] || return 0
+  printf 'days=%s\nmaxmb=%s\n' "$LOGS_retentionDays" "$LOGS_maxSizeMB" > "$LOGS_dir/.retention"
+}
+
 task::create_containers(){
   if [ -z "$HOST_domainsDeclaration"  ]; then
       echo ""
@@ -287,9 +325,12 @@ action::process_config(){
     export domain=$HOST
 
     action::resolve_volume_paths
+    action::resolve_log_settings
 
     util::create_directory "$DB_volume"
     util::create_directory "$WP_volume"
+    util::create_directory "$LOGS_dir"
+    action::write_log_retention
     util::create_directory "$rootDir/domains/$DOMAIN_FILE"
     util::delete "$rootDir/domains/$DOMAIN_FILE/docker-compose.yml"
     action::resolve_subdomains HOST_domainsDeclaration

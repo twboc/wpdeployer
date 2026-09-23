@@ -4,6 +4,7 @@ services:
     $DOMAIN_FILE-dbserver:
         container_name: $DOMAIN_FILE-$DB_container_name
         image: $DB_image
+        command: $DB_command
         environment:
             MYSQL_ROOT_PASSWORD: $DB_pass
         ports:
@@ -11,8 +12,16 @@ services:
         volumes:
             - $DB_volumePath
         restart: always
+        logging:
+            driver: "json-file"
+            options:
+                max-size: "10m"
+                max-file: "3"
         labels:
             - "CONF_GROUP=$CONF_GROUP"
+            - "wpdeployer.site=$DOMAIN_FILE"
+            - "wpdeployer.service=mariadb"
+            - "wpdeployer.logs=$LOGS_enabled"
         networks:
             - proxy
 
@@ -27,11 +36,21 @@ services:
             - $WP_portOut
         volumes:
             - $WP_volumePath
+            - $WP_apacheConfPath
         restart: always
+        logging:
+            driver: "json-file"
+            options:
+                max-size: "10m"
+                max-file: "3"
         labels:
             - "CONF_GROUP=$CONF_GROUP"
+            - "wpdeployer.site=$DOMAIN_FILE"
+            - "wpdeployer.service=wordpress"
+            - "wpdeployer.logs=$LOGS_enabled"
         environment:
             WORDPRESS_DEBUG: $WP_debug
+            WORDPRESS_CONFIG_EXTRA: "$WP_configExtra"
             WORDPRESS_DB_HOST: $DOMAIN_FILE-dbserver
             WORDPRESS_DB_USER: $DB_user
             WORDPRESS_DB_NAME: $DB_name

@@ -28,6 +28,8 @@ services:
     environment:
       - DEFAULT_EMAIL=hubert.sobkow@gmail.com
       - NGINX_PROXY_CONTAINER=nginx-proxy
+      - DEBUG=${ACME_DEBUG:-0}
+      - ACME_CA_URI=${ACME_CA_URI:-https://acme-v02.api.letsencrypt.org/directory}
     volumes:
       - html:/usr/share/nginx/html:rw
       - certs:/etc/nginx/certs:rw
