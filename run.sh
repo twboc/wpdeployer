@@ -22,7 +22,7 @@ echo "Choose Option - All, group, domain."
 
 option=$(util::select_option "${options[@]}" )
 
-if [[ $option == $CANCEL ]]; then
+if [[ -z $option || $option == $CANCEL ]]; then
     return 0
 fi
 

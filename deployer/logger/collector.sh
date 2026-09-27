@@ -60,6 +60,7 @@ ensure(){
   _name=$1
   _site=$(label_of "$_name" wpdeployer.site)
   [ -n "$_site" ] || return 0
+  [ "$(label_of "$_name" wpdeployer.logs)" = true ] || return 0
   _svc=$(label_of "$_name" wpdeployer.service)
   [ -n "$_svc" ] || _svc=$_name
   _dir="$LOGROOT/$_site/logs"

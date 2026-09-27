@@ -18,7 +18,7 @@ export WP_portIn='80'
 export WP_debug=null
 
 export DB_container_name="mariadb"
-export DB_image="mariadb"
+export DB_image="mariadb:12.3"
 export DB_portOut='3301'
 export DB_portIn='3306'
 # export DB_pass=""

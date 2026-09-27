@@ -286,7 +286,7 @@ action::write_db_conf(){
     echo "[mysqld]"
     if [ "$LOGS_enabled" = true ] && [ "$LOGS_slowQueryTime" != 0 ]; then
       echo "slow_query_log = 1"
-      echo "slow_query_log_file = /dev/stderr"
+      echo "slow_query_log_file = /var/lib/mysql/slow.log"
       echo "long_query_time = $LOGS_slowQueryTime"
     fi
   } > "$DB_confFile"
@@ -314,7 +314,7 @@ action::set_database_pass(){
     echo "Please set the DB_pass variable in $rootDir/deployer/DB_connection.sh file";
     return;
   else 
-    echo "NO DB PASS - DB_pass is set to default '$DB_pass'"; 
+    echo "Default DB_pass is set in $rootDir/deployer/DB_connection.sh"; 
   fi
 
   export DBPass
