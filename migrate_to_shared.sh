@@ -18,6 +18,7 @@ usage(){
   echo "Usage:"
   echo "  $0 <site> <group>      move configs/<site>.sh into shared DB group db_groups/<group>.sh"
   echo "  $0 --rollback <site>   restore the site's last dedicated config and redeploy it"
+  echo "  MIGRATE_PREFIX=wp_ $0 <site> <group>   choose the live table prefix when the database has several"
   exit 1
 }
 
@@ -94,8 +95,15 @@ SRC_VER=$(src_sql -e 'SELECT VERSION()' 2>/dev/null) || die "cannot log in to $S
 ok "source $SITE-mariadb $SRC_VER, database $SRC_DB"
 
 PREFIXES=$(src_sql -e "SELECT LEFT(table_name, LENGTH(table_name)-7) FROM information_schema.tables WHERE table_schema='$SRC_DB' AND table_name LIKE '%\\_options'")
-[ "$(printf '%s\n' "$PREFIXES" | grep -c .)" = 1 ] || die "expected one WordPress options table in $SRC_DB, found: ${PREFIXES:-none}"
-PREFIX=$PREFIXES
+FOUND=$(printf '%s\n' "$PREFIXES" | sed '/^$/d' | tr '\n' ' ' | sed 's/ $//')
+if [ -n "${MIGRATE_PREFIX:-}" ]; then
+  printf '%s\n' "$PREFIXES" | grep -qxF "$MIGRATE_PREFIX" || die "MIGRATE_PREFIX=$MIGRATE_PREFIX has no options table in $SRC_DB (found: ${FOUND:-none})"
+  PREFIX=$MIGRATE_PREFIX
+  [ "$(printf '%s\n' "$PREFIXES" | grep -c .)" = 1 ] || info "several WordPress table sets found ($FOUND), using '$PREFIX' from MIGRATE_PREFIX"
+else
+  [ "$(printf '%s\n' "$PREFIXES" | grep -c .)" = 1 ] || die "expected one WordPress options table in $SRC_DB, found: ${FOUND:-none} - check \$table_prefix in wp-config.php and run again with MIGRATE_PREFIX=<prefix>"
+  PREFIX=$PREFIXES
+fi
 LIKE=$(printf '%s' "$PREFIX" | sed 's/_/\\\\_/g')
 if [ "$SRC_DB" = mysql ]; then
   mapfile -t TABLES < <(src_sql -e "SELECT table_name FROM information_schema.tables WHERE table_schema='mysql' AND table_type='BASE TABLE' AND table_name LIKE '${LIKE}%' ORDER BY table_name")
