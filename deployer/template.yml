@@ -37,6 +37,8 @@ services:
         volumes:
             - $WP_volumePath
             - $WP_apacheConfPath
+            - $WP_mpmConfPath
+            - $WP_phpConfPath
         restart: always
         logging:
             driver: "json-file"

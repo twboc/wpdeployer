@@ -106,6 +106,7 @@ util::clear_domain_file_vars(){
   unset LOGS_enabled LOGS_retentionDays LOGS_maxSizeMB LOGS_slowQueryTime
   unset LOGS_dir WP_debugLog WP_configExtra WP_apacheConfPath
   unset DB_confFile DB_confPath
+  unset WP_maxWorkers WP_phpMemory WP_opcacheMB WP_mpmConfFile WP_mpmConfPath WP_phpConfFile WP_phpConfPath
   unset WP_container_name WP_image WP_portOut WP_portIn WP_debug
   unset DB_container_name DB_image DB_portOut DB_portIn
   unset DB_pass DB_name DB_user DB_host
@@ -280,6 +281,36 @@ action::resolve_log_settings(){
   export WP_debug
 }
 
+action::resolve_wp_tuning(){
+  [ -n "${WP_maxWorkers:-}" ] || WP_maxWorkers=10
+  [ -n "${WP_phpMemory:-}" ] || WP_phpMemory=128M
+  [ -n "${WP_opcacheMB:-}" ] || WP_opcacheMB=64
+  export WP_maxWorkers WP_phpMemory WP_opcacheMB
+  export WP_mpmConfFile="$rootDir/domains/$DOMAIN_FILE/apache-mpm.conf"
+  export WP_mpmConfPath="$WP_mpmConfFile:/etc/apache2/conf-enabled/zz-wpdeployer-mpm.conf:ro"
+  export WP_phpConfFile="$rootDir/domains/$DOMAIN_FILE/php.ini"
+  export WP_phpConfPath="$WP_phpConfFile:/usr/local/etc/php/conf.d/zz-wpdeployer.ini:ro"
+}
+
+action::write_wp_conf(){
+  [ -n "${WP_mpmConfFile:-}" ] || return 0
+  _spare=$(( WP_maxWorkers < 3 ? WP_maxWorkers : 3 ))
+  {
+    echo "<IfModule mpm_prefork_module>"
+    echo "    StartServers 1"
+    echo "    MinSpareServers 1"
+    echo "    MaxSpareServers $_spare"
+    echo "    MaxRequestWorkers $WP_maxWorkers"
+    echo "    MaxConnectionsPerChild 1000"
+    echo "</IfModule>"
+    echo "KeepAliveTimeout 2"
+  } > "$WP_mpmConfFile"
+  {
+    echo "memory_limit = $WP_phpMemory"
+    echo "opcache.memory_consumption = $WP_opcacheMB"
+  } > "$WP_phpConfFile"
+}
+
 action::write_db_conf(){
   [ -n "${DB_confFile:-}" ] || return 0
   {
@@ -357,6 +388,7 @@ action::process_config(){
 
     action::resolve_volume_paths
     action::resolve_log_settings
+    action::resolve_wp_tuning
 
     util::create_directory "$DB_volume"
     util::create_directory "$WP_volume"
@@ -365,6 +397,7 @@ action::process_config(){
     util::create_directory "$rootDir/domains/$DOMAIN_FILE"
     util::delete "$rootDir/domains/$DOMAIN_FILE/docker-compose.yml"
     action::write_db_conf
+    action::write_wp_conf
     action::resolve_subdomains HOST_domainsDeclaration
     task::create_containers
 

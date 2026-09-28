@@ -16,6 +16,9 @@ export WP_image="wordpress"
 export WP_portOut='81'
 export WP_portIn='80'
 export WP_debug=null
+export WP_maxWorkers=10
+export WP_phpMemory=128M
+export WP_opcacheMB=64
 
 export DB_container_name="mariadb"
 export DB_image="mariadb:12.3"
