@@ -109,7 +109,7 @@ util::clear_domain_file_vars(){
   unset WP_maxWorkers WP_phpMemory WP_opcacheMB WP_mpmConfFile WP_mpmConfPath WP_phpConfFile WP_phpConfPath
   unset WP_container_name WP_image WP_portOut WP_portIn WP_debug
   unset DB_container_name DB_image DB_portOut DB_portIn
-  unset DB_pass DB_name DB_user DB_host
+  unset DB_pass DB_name DB_user DB_host DB_mode DB_group
   export HOST_domains=()
   export HOST_subdomains=()
   export HOST_domainsDeclaration=""
@@ -133,7 +133,12 @@ util::build_options() {
 
     unique_groups=($(printf "%s\n" "${groups[@]}" | sort -u))
 
-    local all=( "${base[@]}" "${unique_groups[@]}" "${configs[@]}" )
+    dbgroups=()
+    for dbg in "$rootDir"/db_groups/*.sh; do
+        [ -f "$dbg" ] && dbgroups=(${dbgroups[@]} "DBGROUP:$(basename "$dbg" .sh)")
+    done
+
+    local all=( "${base[@]}" "${dbgroups[@]}" "${unique_groups[@]}" "${configs[@]}" )
     echo ${all[@]}
 }
 
@@ -162,6 +167,115 @@ action::run_logger(){
   cd "$rootDir"
 }
 
+dbgroup::load(){
+  unset DBG_name DBG_image DBG_rootPass DBG_maxSites DBG_bufferPoolMB DBG_maxConnections
+  if [[ ! "$1" =~ ^[a-z0-9]+$ ]]; then
+    echo "!!! Invalid DB group name '$1' - use lowercase letters and digits"
+    return 1
+  fi
+  if [ ! -f "$rootDir/db_groups/$1.sh" ]; then
+    echo "!!! DB group file not found: $rootDir/db_groups/$1.sh"
+    return 1
+  fi
+  . "$rootDir/db_groups/$1.sh"
+  export DBG_name=$1
+  [ -n "${DBG_maxSites:-}" ] || DBG_maxSites=20
+  [ -n "${DBG_bufferPoolMB:-}" ] || DBG_bufferPoolMB=1024
+  [ -n "${DBG_maxConnections:-}" ] || DBG_maxConnections=300
+  if [ -z "${DBG_image:-}" ] || [ -z "${DBG_rootPass:-}" ]; then
+    echo "!!! DBG_image and DBG_rootPass must be set in db_groups/$1.sh"
+    return 1
+  fi
+  export DBG_image DBG_rootPass DBG_maxSites DBG_bufferPoolMB DBG_maxConnections
+  export DBG_container="wpdb-$1"
+  export DBG_dataPath="$rootDir/volumes_shared/$1/mariadb"
+  export DBG_confFile="$rootDir/domains_shared/$1/mariadb.cnf"
+  export DBG_composeFile="$rootDir/domains_shared/$1/docker-compose.yml"
+}
+
+dbgroup::sql(){
+  docker exec -i -e MYSQL_PWD="$DBG_rootPass" "$DBG_container" mariadb -uroot -N -B "$@"
+}
+
+dbgroup::wait_ready(){
+  for _i in $(seq 1 60); do
+    [ "$(docker inspect -f '{{.State.Health.Status}}' "$DBG_container" 2>/dev/null)" = healthy ] && return 0
+    sleep 2
+  done
+  echo "!!! $DBG_container did not become healthy"
+  return 1
+}
+
+dbgroup::site_count(){
+  grep -l "^export DB_group=$1\$" "$rootDir"/configs/*.sh 2>/dev/null | xargs -r grep -l '^export DB_mode=shared$' | wc -l
+}
+
+action::run_db_group(){
+  dbgroup::load "$1" || return 1
+  echo "Running - shared DB group $DBG_name ($DBG_container)"
+  util::create_directory "$DBG_dataPath"
+  util::create_directory "$(dirname "$DBG_confFile")"
+  {
+    echo "[mysqld]"
+    echo "innodb_buffer_pool_size = ${DBG_bufferPoolMB}M"
+    echo "max_connections = $DBG_maxConnections"
+  } > "$DBG_confFile"
+  envsubst < "$rootDir/deployer/db_group/template.yml" > "$DBG_composeFile"
+  sudo $COMPOSE_CMD -p "wpdb-$DBG_name" -f "$DBG_composeFile" up -d || return 1
+  dbgroup::wait_ready
+}
+
+action::run_all_db_groups(){
+  for _dbg in "$rootDir"/db_groups/*.sh; do
+    [ -f "$_dbg" ] && action::run_db_group "$(basename "$_dbg" .sh)"
+  done
+  return 0
+}
+
+action::resolve_db_mode(){
+  [ -n "${DB_mode:-}" ] || DB_mode=dedicated
+  export DB_mode
+  [ "$DB_mode" = dedicated ] && return 0
+  if [ "$DB_mode" != shared ]; then
+    echo "!!! $DOMAIN_FILE: DB_mode must be dedicated or shared, got '$DB_mode'"
+    return 1
+  fi
+  dbgroup::load "${DB_group:-}" || return 1
+  export DB_group
+  if [ "${DB_host:-}" != "$DBG_container" ]; then
+    echo "!!! $DOMAIN_FILE: DB_host must be $DBG_container for DB_group=$DB_group"
+    return 1
+  fi
+  if [[ ! "${DB_name:-}" =~ ^[A-Za-z0-9_]{1,64}$ ]] || [[ ! "${DB_user:-}" =~ ^[A-Za-z0-9_]{1,80}$ ]] || [[ ! "${DB_pass:-}" =~ ^[A-Za-z0-9]{16,}$ ]]; then
+    echo "!!! $DOMAIN_FILE: shared mode needs DB_name/DB_user (letters, digits, _) and DB_pass (16+ letters/digits)"
+    return 1
+  fi
+  if [ "$DB_name" = mysql ] || [ "$DB_user" = root ]; then
+    echo "!!! $DOMAIN_FILE: shared mode cannot use DB_name=mysql or DB_user=root"
+    return 1
+  fi
+  _count=$(dbgroup::site_count "$DB_group")
+  if [ "$_count" -gt "$DBG_maxSites" ]; then
+    echo "!!! WARNING: DB group $DB_group has $_count sites, limit is $DBG_maxSites - move sites to another group"
+  fi
+}
+
+action::provision_shared_db(){
+  [ "$DB_mode" = shared ] || return 0
+  if [ "$(docker inspect -f '{{.State.Running}}' "$DBG_container" 2>/dev/null)" != true ]; then
+    action::run_db_group "$DB_group" || return 1
+  fi
+  dbgroup::wait_ready || return 1
+  _maxconn=$(( WP_maxWorkers + 5 ))
+  dbgroup::sql <<SQL || { echo "!!! Could not provision database $DB_name in $DBG_container"; return 1; }
+CREATE DATABASE IF NOT EXISTS \`$DB_name\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS '$DB_user'@'%' IDENTIFIED BY '$DB_pass';
+ALTER USER '$DB_user'@'%' IDENTIFIED BY '$DB_pass' WITH MAX_USER_CONNECTIONS $_maxconn;
+GRANT ALL PRIVILEGES ON \`$DB_name\`.* TO '$DB_user'@'%';
+SQL
+  echo "Provisioned database $DB_name for $DOMAIN_FILE in $DBG_container"
+}
+
 action::check_host_variable(){
   if [ -z "$HOST" ];
     then
@@ -182,6 +296,9 @@ action::execute_option(){
     if [[ $1 == $RESTART_ALL ]]; then
         util::clear_docker_containers
         action::run_base
+        action::run_all_db_groups
+    elif [[ $1 == "DBGROUP:"* ]]; then
+        action::run_db_group "${1#DBGROUP:}"
     else
 
         if [[ $option == "GROUP:"* ]]; then
@@ -334,8 +451,10 @@ task::create_containers(){
       echo "Domains and subdomains not created for $DOMAIN_FILE"
       echo "Omitting container configuration for $(basename $file)"
   else
-      envsubst < "$rootDir/deployer/template.yml" > "$rootDir/domains/$DOMAIN_FILE/docker-compose.yml";
-      sudo $COMPOSE_CMD -f "$rootDir/domains/$DOMAIN_FILE/docker-compose.yml" up -d
+      _template="$rootDir/deployer/template.yml"
+      [ "$DB_mode" = shared ] && _template="$rootDir/deployer/template_shared.yml"
+      envsubst < "$_template" > "$rootDir/domains/$DOMAIN_FILE/docker-compose.yml";
+      sudo $COMPOSE_CMD -f "$rootDir/domains/$DOMAIN_FILE/docker-compose.yml" up -d --remove-orphans
   fi
 }
 
@@ -389,15 +508,17 @@ action::process_config(){
     action::resolve_volume_paths
     action::resolve_log_settings
     action::resolve_wp_tuning
+    action::resolve_db_mode || return 1
 
-    util::create_directory "$DB_volume"
+    [ "$DB_mode" = shared ] || util::create_directory "$DB_volume"
     util::create_directory "$WP_volume"
     util::create_directory "$LOGS_dir"
     action::write_log_retention
     util::create_directory "$rootDir/domains/$DOMAIN_FILE"
     util::delete "$rootDir/domains/$DOMAIN_FILE/docker-compose.yml"
-    action::write_db_conf
+    [ "$DB_mode" = shared ] || action::write_db_conf
     action::write_wp_conf
+    action::provision_shared_db || return 1
     action::resolve_subdomains HOST_domainsDeclaration
     task::create_containers
 

@@ -3,3 +3,6 @@ configs/
 docker-compose-letsencrypt-nginx-proxy-companion/
 volumes/
 domains/
+db_groups/
+volumes_shared/
+domains_shared/

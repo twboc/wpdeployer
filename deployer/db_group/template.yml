@@ -1,0 +1,31 @@
+services:
+    mariadb:
+        container_name: wpdb-$DBG_name
+        image: $DBG_image
+        environment:
+            MARIADB_ROOT_PASSWORD: $DBG_rootPass
+        volumes:
+            - $DBG_dataPath:/var/lib/mysql
+            - $DBG_confFile:/etc/mysql/conf.d/zz-wpdeployer.cnf:ro
+        restart: always
+        healthcheck:
+            test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+            interval: 10s
+            timeout: 5s
+            retries: 30
+        logging:
+            driver: "json-file"
+            options:
+                max-size: "10m"
+                max-file: "3"
+        labels:
+            - "wpdeployer.dbgroup=$DBG_name"
+            - "wpdeployer.service=mariadb-shared"
+            - "wpdeployer.logs=false"
+        networks:
+            - wpdb
+
+networks:
+    wpdb:
+        name: wpdb_$DBG_name
+        internal: true
